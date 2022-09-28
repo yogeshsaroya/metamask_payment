@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"></script>
+    <script src="https://unpkg.com/@metamask/legacy-web3@latest/dist/metamask.web3.min.js"></script>
+</head>
+
+<body>
+    <input type="number" name="" value="1" id="amount" placeholder="amount" />
+    <button type="button" id="" onclick="payBUSD()">Pay BUSD</button>
+    <button type="button" id="" onclick="payBNB()">Pay BNB</button>
+    <div id="status"></div>
+</body>
+<script>
+    const paymentAddress = ""; //Your wallet address to rec payment
+    const BUSD_CONTRACT = ""; //BUSD CONTRACT Address 
+    const BUSD_ABI = []; //BUSD CONTRACT ABI  
+    var web3 = null;
+    var instance = null;
+    var chainId = null;
+    async function changeToMain() {
+        await ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x38" }], //MAIN BSC
+        });
+    }
+    async function payBUSD() {
+        let amt = $("#amount").val();
+        web3 = new Web3(Web3.givenProvider);
+        await Web3.givenProvider.enable();
+        chainId = await web3.eth.getChainId();
+        await ethereum
+            .request({ method: "eth_requestAccounts" })
+            .then(async (account) => {
+                if (chainId != 56) {
+                    await changeToMain();
+                }
+                instance = new web3.eth.Contract(BUSD_ABI, BUSD_CONTRACT);
+                instance.methods
+                    .transfer(paymentAddress, web3.utils.toWei(amt, "ether"))
+                    .send({ from: account[0] })
+                    .on("transactionHash", function (hash) {
+                        console.log("transactionHash", hash);
+                    })
+                    .on("receipt", function (receipt) {
+                        console.log(receipt.transactionHash);
+                    })
+                    .on("confirmation", function (confirmationNumber, receipt) {
+                        console.log(confirmationNumber); console.log(receipt);
+                    })
+                    .on("error", function (error, receipt) {
+                        console.log(error);
+                    });
+            });
+    }
+
+    async function payBNB() {
+        let amt = $("#amount").val();
+
+        web3 = new Web3(Web3.givenProvider);
+        await Web3.givenProvider.enable();
+
+        chainId = await web3.eth.getChainId();
+
+        await ethereum
+            .request({ method: "eth_requestAccounts" })
+            .then(async (account) => {
+                if (chainId != 56) {
+                    await changeToMain();
+                }
+                let amountEth = $("#amount").val();
+
+                web3.eth.sendTransaction(
+                    {
+                        from: account[0],
+                        to: paymentAddress,
+                        value: web3.utils.toWei(amountEth, "ether"),
+                    },
+                    (err, transactionId) => {
+                        if (err) {
+                            console.log("Payment failed", err);
+                            $("#status").html("Payment failed");
+                        } else {
+                            console.log("Payment successful", transactionId);
+                            $("#status").html("Payment successful");
+                        }
+                    }
+                );
+            });
+    }
+</script>
+
+</html>
